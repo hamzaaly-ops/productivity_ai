@@ -26,6 +26,7 @@ def register(payload: UserRegisterRequest, db: Session = Depends(get_db)):
     user = register_user(db, payload)
     return _to_user_response(user)
 
+
 @router.post("/login", response_model=TokenResponse)
 def login(payload: UserLoginRequest, db: Session = Depends(get_db)):
     user = authenticate_user(db, payload.username, payload.password)
@@ -36,3 +37,4 @@ def login(payload: UserLoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_active_user)):
     return _to_user_response(current_user)
+
