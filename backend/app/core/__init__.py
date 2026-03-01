@@ -6,3 +6,4 @@ from app import models  # noqa: F401
 
 def create_database_tables() -> None:
     Base.metadata.create_all(bind=engine)
+

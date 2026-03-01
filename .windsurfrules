@@ -1,0 +1,91 @@
+# Cursor Rules for Remote Work Tracking Monorepo
+
+## General Conventions
+- Use **TypeScript** for all new frontend code and **Python 3.12+** for backend.
+- Prefer **async/await** end-to-end (HTTP, DB, background tasks).
+- Treat this as a **services + modules** architecture, not a big ball of mud.
+
+## Naming & Style
+- **TypeScript / React / Next.js**
+  - Use `camelCase` for variables, functions, and hooks.
+  - Use `PascalCase` for React components and types.
+  - File names: prefer `kebab-case` or `camelCase` for utilities, `PascalCase` for components.
+- **Python / FastAPI**
+  - Use `snake_case` for functions, variables, and module names.
+  - Use `PascalCase` for classes (Pydantic models, SQLAlchemy models, services).
+  - Keep modules small and cohesive; avoid “god modules”.
+
+## Monorepo Layout
+- Root:
+  - `frontend/` → Next.js 15 App Router frontend.
+  - `backend/` → FastAPI backend.
+  - `docker-compose.yml` → Orchestrates frontend, backend, and PostgreSQL 17.
+  - `docs/` → Architecture and design docs.
+- Backend (`backend/app/`):
+  - `app/api/` → FastAPI routers (HTTP endpoints only).
+  - `app/core/` → Core app wiring (startup, settings, DB bootstrap, security primitives).
+  - `app/models/` → SQLAlchemy models.
+  - `app/schemas/` → Pydantic V2 schemas.
+  - `app/services/` → Domain logic and orchestration.
+
+## Backend (FastAPI + Async Python)
+- Use **Pydantic V2** (`BaseModel`, `model_config`) for all request/response schemas.
+- New endpoints should be:
+  - Defined in `app/api` modules.
+  - `async def` FastAPI route handlers.
+  - Thin: delegate to functions in `app/services`.
+- Prefer **SQLAlchemy async** for new database access:
+  - Use `sqlalchemy[asyncio]` with `AsyncEngine` and `async_sessionmaker`.
+  - Keep session creation and teardown in one place (e.g. `app/core` or `app/database`).
+  - Avoid mixing sync and async DB access in the same call path.
+- Configuration:
+  - Centralize configuration via **pydantic-settings**.
+  - Read secrets/config from environment variables; do not hard-code.
+
+## Frontend (Next.js 15 App Router)
+- Use **App Router** (`frontend/app`) and server components by default.
+- Data fetching patterns:
+  - For server-rendered pages, use **async server components** and Next 15 async request APIs:
+    - `headers()`, `cookies()`, `draftMode()`, `redirect()` from `next/headers` / `next/navigation`.
+    - Route segment params & search params via the new async params APIs.
+  - For rich client interactivity, use **TanStack Query** (`@tanstack/react-query`) in client components.
+- Routing:
+  - Prefer nested route groups and layouts (`app/(dashboard)/...`, `app/(auth)/...`) over deeply nested components.
+  - Keep route modules focused on composition; avoid large multi-purpose pages.
+- Styling:
+  - Use **Tailwind CSS** as the base styling system.
+  - Use **shadcn/ui** patterns:
+    - Compose primitives from `@radix-ui/*` + Tailwind utilities.
+    - Use `class-variance-authority`, `clsx`, and `tailwind-merge` for variants and class composition.
+  - Use **lucide-react** for icons.
+
+## API Boundaries & Contracts
+- The backend is the **source of truth** for:
+  - Authentication, authorization, and user identity.
+  - Time-series work logs, idle episodes, and analytics.
+- The frontend should:
+  - Treat backend endpoints as **versioned contracts**.
+  - Avoid coupling to internal backend models; always go through Pydantic schemas.
+  - Use `NEXT_PUBLIC_*` env vars for any runtime configuration injected into the browser.
+
+## Testing & Observability (Skeleton-Level Guidance)
+- Add tests per module:
+  - Backend: pytest-style tests for services and API routes.
+  - Frontend: component and hooks tests using the existing testing stack.
+- Prefer structured logging over ad-hoc `print` or `console.log` once business logic is implemented.
+
+
+## Backend (FastAPI + Async Python) - CRITICAL UPDATE
+- **Strict Async:** Use `sqlalchemy[asyncio]` with the `postgresql+asyncpg` driver. 
+- **NO SYNCHRONOUS DRIVERS:** Do not use `psycopg2` (sync); use `asyncpg` for all DB operations to prevent event loop blocking.
+- **Dependency Injection:** Use FastAPI `Depends` for database sessions. Every route should use a `get_db` async generator.
+
+## Frontend (Next.js 15) - CRITICAL UPDATE
+- **Async Metadata/Params:** In Next.js 15, `params` and `searchParams` in `page.tsx` and `layout.tsx` are Promises. Always `await` them.
+- **Form Actions:** Prefer **Server Actions** for mutations (POST/PATCH/DELETE) instead of manual API calls in client components where possible.
+
+## AI Execution Logic
+1. **Plan:** AI must summarize the logic and file changes in a list before writing code.
+2. **Verify:** AI must check for existing types in `@frontend/types` or `@backend/schemas` to avoid duplication.
+3. **Draft:** AI writes the code using the most modern syntax (e.g., Python 3.12 `type` statement, Next.js 15 async APIs).
+

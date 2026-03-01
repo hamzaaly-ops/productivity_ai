@@ -73,3 +73,4 @@ def get_anomaly_route(
     current_user: User = Depends(get_current_active_user),
 ):
     return get_anomaly_report(db, current_user.public_id, target_date, lookback_days)
+

@@ -1,8 +1,12 @@
 from fastapi import FastAPI
-from app.auth_routes import router as auth_router
-from app.core import create_database_tables
-from app.routes import router as activity_router
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.auth_routes import router as auth_router
+from app.api.routes import router as activity_router
+from app.api.v1.auth import router as v1_auth_router
+from app.api.v1.heartbeat import router as v1_heartbeat_router
+from app.api.v1.sessions import router as v1_sessions_router
+from app.core import create_database_tables
 
 
 app = FastAPI(title="AI Productivity Engine")
@@ -18,6 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 def startup() -> None:
     create_database_tables()
@@ -25,6 +30,11 @@ def startup() -> None:
 
 app.include_router(auth_router)
 app.include_router(activity_router)
+
+# API v1 (async, UUID models)
+app.include_router(v1_auth_router, prefix="/api/v1")
+app.include_router(v1_sessions_router, prefix="/api/v1")
+app.include_router(v1_heartbeat_router, prefix="/api/v1")
 
 @app.get("/")
 def health_check():

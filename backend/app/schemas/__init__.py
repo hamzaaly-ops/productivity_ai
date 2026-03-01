@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -112,3 +113,48 @@ class DailySummaryResponse(BaseModel):
     switch_norm: float
     productivity_score: float
     breakdown: dict[str, float]
+
+
+# --- V1 Session & Heartbeat schemas ---
+
+
+class SessionStart(BaseModel):
+    project_name: Optional[str] = Field(default=None, max_length=256)
+
+
+class SessionRead(BaseModel):
+    id: UUID
+    user_id: UUID
+    start_time: datetime
+    end_time: Optional[datetime]
+    status: str
+    project_name: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+class SessionEnd(BaseModel):
+    end_time: datetime
+
+
+class SessionEndRequest(BaseModel):
+    session_id: UUID
+    end_time: datetime
+
+
+class HeartbeatCreate(BaseModel):
+    session_id: UUID
+    timestamp: datetime
+    is_idle: bool = False
+    meta_data: Optional[dict[str, Any]] = None
+
+
+class HeartbeatRead(BaseModel):
+    id: int
+    session_id: UUID
+    timestamp: datetime
+    is_idle: bool
+    meta_data: Optional[dict[str, Any]]
+
+    model_config = {"from_attributes": True}
+
